@@ -21,7 +21,7 @@ public class User {
     private String id;
 
     @Field
-    @NonNull
+    @NotBlank
     @Size(min = 3, max = 35, message = "Error: Name has to be between 3 and 35 characters long")
     private String name;
 

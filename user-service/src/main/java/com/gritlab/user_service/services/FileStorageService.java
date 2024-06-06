@@ -1,6 +1,6 @@
-package com.gritlab.media_service.services;
+package com.gritlab.user_service.services;
 
-import com.gritlab.media_service.exceptions.StorageException;
+import com.gritlab.user_service.exceptions.StorageException;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;

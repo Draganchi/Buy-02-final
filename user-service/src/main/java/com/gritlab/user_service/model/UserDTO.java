@@ -12,4 +12,12 @@ public class UserDTO {
     private String name;
     private Role role;
     private String avatar;
+
+    // Constructor to convert User to UserDTO
+    public UserDTO(User user) {
+        this.id = user.getId();
+        this.name = user.getName();
+        this.role = user.getRole();
+        this.avatar = user.getAvatar();
+    }
 }

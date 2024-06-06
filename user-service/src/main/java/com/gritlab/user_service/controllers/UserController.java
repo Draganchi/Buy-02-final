@@ -1,7 +1,6 @@
 package com.gritlab.user_service.controllers;
 
-import com.gritlab.media_service.models.Media;
-import com.gritlab.media_service.services.MediaService;
+import com.gritlab.user_service.services.FileStorageService;
 import com.gritlab.user_service.model.Role;
 import com.gritlab.user_service.model.User;
 import com.gritlab.user_service.model.UserDTO;
@@ -17,7 +16,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.print.attribute.standard.Media;
 import java.io.IOException;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -33,7 +34,7 @@ public class UserController {
     private KafkaService kafkaService;
 
     @Autowired
-    private MediaService mediaService;
+    private FileStorageService fileStorageService;
 
     @PostMapping
     @PreAuthorize("hasRole(T(com.gritlab.user_service.model.Role).SELLER.toString())")
@@ -111,8 +112,8 @@ public class UserController {
     @PreAuthorize("hasRole(T(com.gritlab.user_service.model.Role).SELLER.toString())")
     public ResponseEntity<?> uploadAvatar(@PathVariable("id") String id, @RequestParam("avatar") MultipartFile avatar) {
         try {
-            Media media = mediaService.uploadMedia(avatar, id);
-            userService.updateAvatar(id, media.getImagePath());
+            Media media = uploadMedia(avatar, id);
+            userService.updateAvatar(id, getImagePath());
             return new ResponseEntity<>("Avatar uploaded successfully", HttpStatus.OK);
         } catch (IOException e) {
             return new ResponseEntity<>("Error uploading avatar", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -123,8 +124,8 @@ public class UserController {
     @PreAuthorize("hasRole(T(com.gritlab.user_service.model.Role).SELLER.toString())")
     public ResponseEntity<?> updateAvatar(@PathVariable("id") String id, @RequestParam("avatar") MultipartFile avatar) {
         try {
-            Media media = mediaService.uploadMedia(avatar, id);
-            userService.updateAvatar(id, media.getImagePath());
+            Media media = uploadMedia(avatar, id);
+            userService.updateAvatar(id, getImagePath());
             return new ResponseEntity<>("Avatar updated successfully", HttpStatus.OK);
         } catch (IOException e) {
             return new ResponseEntity<>("Error updating avatar", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -134,21 +135,21 @@ public class UserController {
     @DeleteMapping("/{id}/avatar")
     @PreAuthorize("hasRole(T(com.gritlab.user_service.model.Role).SELLER.toString())")
     public ResponseEntity<?> deleteAvatar(@PathVariable("id") String id) {
-        try {
-            UserDTO userDTO = userService.getUserById(id);
-            if (userDTO != null && userDTO.getAvatar() != null) {
-                mediaService.deleteMedia(userDTO.getAvatar());
-                userService.deleteAvatar(id);
-                return new ResponseEntity<>("Avatar deleted successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("No avatar found for the user", HttpStatus.NOT_FOUND);
-            }
-        } catch (IOException e) {
-            return new ResponseEntity<>("Error deleting avatar", HttpStatus.INTERNAL_SERVER_ERROR);
+        UserDTO userDTO = userService.getUserById(id);
+        if (userDTO != null && userDTO.getAvatar() != null) {
+            kafkaService.sendToTopic("deleteAvatar", userDTO.getId());
+            // userService.deleteAvatar(id);
+            return new ResponseEntity<>("Avatar deleted successfully", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("No avatar found for the user", HttpStatus.NOT_FOUND);
         }
     }
+
+    public Media uploadMedia(MultipartFile file, String productId) throws IOException {
+        fileStorageService.storeFileTemporarily(productId, file);
+        String fileName = productId + "_" + file.getOriginalFilename();
+        Media media = new Media(UUID.randomUUID().toString(), fileName, productId);
+        kafkaService.sendToTopic("saveThisToMediaRepo", media.getImagePath());
+        return media;
+    }
 }
-
-
-
-

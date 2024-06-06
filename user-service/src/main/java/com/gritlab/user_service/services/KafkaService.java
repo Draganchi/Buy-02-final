@@ -11,6 +11,9 @@ public class KafkaService {
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
 
+    @Autowired
+    private KafkaTemplate<String, byte[]> byteArrayKafkaTemplate;
+
     public void sendUserCreatedEvent(User user) {
         kafkaTemplate.send("user-events", "User created: " + user.getId());
     }
@@ -24,6 +27,9 @@ public class KafkaService {
     }
     public void sendToTopic(String topic, String payload) {
         kafkaTemplate.send(topic, payload);
+    }
+    public void sendFileToTopic(String topic, byte[] fileContent) {
+        byteArrayKafkaTemplate.send(topic, fileContent);
     }
 }
 
